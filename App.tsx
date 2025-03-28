@@ -48,7 +48,11 @@ export default function App() {
 
   const saveCredentialsToKeychain = async (key: forge.util.ByteStringBuffer, iv: forge.util.ByteStringBuffer) => {
     try {
-      await Keychain.setGenericPassword(key.toHex(), iv.toHex()); // We need to pass the key and iv as strings instead of ByteStringBuffer objects.
+      await Keychain.setGenericPassword(key.toHex(), iv.toHex(),  // We need to pass the key and iv as strings instead of ByteStringBuffer objects.
+      {      
+        // accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY, // These line code are for the biometric authentication.
+        // accessible: Keychain.ACCESSIBLE.WHEN_UNLOCKED
+      });
       console.log("Credentials saved successfully!");      
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -62,6 +66,7 @@ export default function App() {
   const getCredentialsFromKeychain = async () => {
     try {
       const credentials = await Keychain.getGenericPassword();
+      // const credentials = await Keychain.getGenericPassword({accessControl: Keychain.ACCESS_CONTROL.BIOMETRY_ANY}); // biometric authentication.
       console.log('Credentials retrieved from Keychain:', credentials);
       return credentials;
     }
