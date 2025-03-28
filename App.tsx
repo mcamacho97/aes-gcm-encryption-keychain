@@ -13,8 +13,6 @@ export default function App() {
     cardCVV: string;
   }
 
-  const [aesKey, setAesKey] = useState<forge.util.ByteStringBuffer | null>(null);
-  const [iv, setIv] = useState<forge.util.ByteStringBuffer | null>(null);
   const [ciphertext, setCiphertext] = useState<forge.util.ByteStringBuffer | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [decryptedDetails, setDecryptedDetails] = useState<CardDetails | null>(null);
@@ -28,22 +26,25 @@ export default function App() {
 
   useEffect(() => {
     const { aesKey: newKey, iv: newIv } = generateAESKeyAndIV();
-    setAesKey(newKey);
-    setIv(newIv);
 
     console.log('AES Key (hex):', newKey.toHex());
     console.log('IV (hex):', newIv.toHex());
     saveCredentialsToKeychain(newKey, newIv);
-
   }, []);
 
   useEffect(() => {
-    if (aesKey && iv) {
-      const encrypted = encryptData<CardDetails>(cardDetails, aesKey, iv);
-      setCiphertext(encrypted);
-      console.log('Encrypted data:', encrypted.toHex());
-    }
-  }, [aesKey, iv]);
+    const encryption = async () => {
+      const credentials = await getCredentialsFromKeychain();
+      if (credentials) {
+        const aesKeyKeychain = forge.util.createBuffer(forge.util.hexToBytes(credentials.username)); // We need to convert the hex string back to a ByteStringBuffer object.
+        const ivKeychain = forge.util.createBuffer(forge.util.hexToBytes(credentials.password)); // We need to convert the hex string back to a ByteStringBuffer object.
+        const encrypted = encryptData<CardDetails>(cardDetails, aesKeyKeychain, ivKeychain);
+        setCiphertext(encrypted);
+        console.log('Encrypted data:', encrypted.toHex());
+      }
+    };
+    encryption();
+  }, []);
 
 
   const saveCredentialsToKeychain = async (key: forge.util.ByteStringBuffer, iv: forge.util.ByteStringBuffer) => {
@@ -80,7 +81,7 @@ export default function App() {
   }
 
   const handleShowDetails = async () => {
-    if (!showDetails && ciphertext && aesKey && iv) {
+    if (!showDetails && ciphertext) {
       try {
         const credentials =  await getCredentialsFromKeychain();
 
